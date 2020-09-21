@@ -1,188 +1,387 @@
-#include <fstream>
 #include <bits/stdc++.h>
+
+#define N 1000001
 
 using namespace std;
 
-fstream f("vector.in",ios::in)
-fstream g("vector.out",ios::out)
+ifstream fin("teste.in");
+ofstream fout("teste.out");
+int32_t tablou[N],copie_tablou[N];
+int32_t auxiliar[N];
+int32_t frecventa[N];
+int nr_numere, val_max;
+const int RADIX = 255;
 
-void CitireDate(int v[],int n);
-void AfisVect(int v[],int n);
-void SortareLiniara(int v[],int n);
-void CountSort(int v[],int n);
-void Merge(int v[], int st,,int mij, int dr);
-void MergeSort(int v[],int st, int dr);
-void BubbleSort(int v[],int n);
-void RadixSort(int v[],int n);
-void CSort(int v[],int n,int k);
-void QuickSort(int v[],int st, int dr);
-int Maxim(int v[],int n);
+/// Bubble Sort
 
-int main()
+void BubbleSort(int v[],int nr_elemente)
 {
-    int v[101],n;
-    CitireDate(v,n);
-    //Inserati una din sortari
-    AfisVect(v,n);
-    return 0;
-}
-
-void CitireDate(int v[],int n)
-{
-    f>>n;
-    for(int i=1;i<=n;i++)
-        f>>v[i];
-
-}
-void AfisVect(int v[],int n)
-{
-    for(int i=1;i<=n;i++)
-        g<<v[i]<<" ";
-}
-void SortareLiniara(int v[],int n)
-{
-    int aux;
-    for(int i=1;i<n;i++)
-        for(int j=i+1;j<=n;j++)
-            if(v[i]>v[j])
+    int sortate = 0;
+    while (sortate == 0)
+    {
+        sortate = 1;
+        for (int i = 0; i < nr_elemente - 1; i++)
+            if (v[i] > v[i + 1])
             {
-                aux=v[i];
-                v[i]=v[j];
-                v[j]=aux;
+                swap(v[i], v[i + 1]);
+                sortate = 0;
             }
+    }
+}
+
+/// QuickSort1
+
+int Pivotare(int v[],int stanga,int dreapta)
+{
+    int i, j, pasi=0, pasj=1;
+    i=stanga;
+    j=dreapta;
+
+    while(i<j)
+    {
+        if(v[i]>v[j])
+        {
+            swap(v[i],v[j]);
+            pasi=1-pasi;
+            pasj=1-pasj;
+        }
+        i=i+pasi;
+        j=j-pasj;
+    }
+    return i;
+}
+
+void QuickSort1(int v[],int stanga, int dreapta)
+{
+    if(stanga<dreapta)
+    {
+        int pivot=Pivotare(v,stanga,dreapta);
+        QuickSort1(v,stanga,pivot-1);
+        QuickSort1(v,pivot+1,dreapta);
+    }
+}
+
+/// QuickSort cu pivot randomizat
+
+int SegmentareRandomizata(int v[],int stanga, int dreapta)
+{
+    int i,j;
+    i=stanga-1;
+    j=dreapta+1;
+    int randpoz, r1, r2, r3;
+    int nr=dreapta-stanga+1;
+
+    r1=rand()%nr+stanga;
+    r2=rand()%nr+stanga;
+    r3=rand()%nr+stanga;
+
+    int minr,maxr;
+    minr=min(min(r1,r2),min(r2,r3));
+    maxr=max(max(r1,r2),max(r2,r3));
+
+    randpoz=r1+r2+r3-minr-maxr;
+
+    int pivot=v[randpoz];
+
+    while(true)
+    {
+        do
+        {
+            ++i;
+        } while(v[i]<pivot);
+        do
+        {
+            --j;
+        }while(v[j]>pivot);
+        if(i>=j)
+            return j;
+        swap(v[i],v[j]);
+    }
+}
+
+void QuicksortRand(int v[], int stanga, int dreapta)
+{
+    if(stanga<dreapta)
+    {
+        int k=SegmentareRandomizata(v,stanga,dreapta);
+        QuicksortRand(v,stanga,k);
+        QuicksortRand(v,k+1,dreapta);
+    }
+}
+
+/// QuickSort cu pivot mediana
+
+int partitionare(int v[], int stanga, int dreapta, int pozitie);
+int kminim(int v[],int stanga, int dreapta, int k);
+void QuicksortMed(int v[],int stanga,int sfarsit)
+{
+    if(stanga<sfarsit)
+    {
+        int lungime = sfarsit-stanga+1 ;// lungimea vectorului
+
+        int med = kminim(v,stanga,sfarsit,lungime/2); // mediana vectorului
+
+        int p = partitionare(v,stanga,sfarsit,med); // segmentare vector in functie de mediana
+
+        QuicksortMed(v,stanga,p-1);
+        QuicksortMed(v,p+1,sfarsit);
+    }
+}
+
+// Functie pt sortare de cate 5 elemente
+
+int CautaMediana(int v[], int n)
+{
+    sort(v,v+n);
+    return v[n/2];
+}
+
+int kminim(int v[],int stanga, int dreapta, int k)
+{
+    if(k>0 && k<=dreapta-stanga+1) // daca k e mai mic decat lungimea vect
+    {
+        int numar = dreapta-stanga+1;
+        int i, mediana[(numar+4)/5]; // se formeaza grupuri de cate 5 in vector
+
+        for(i=0;i<numar/5;i++)
+            mediana[i] = CautaMediana(v+stanga+i*5,5);
+
+        if(i*5<numar) // pentru ultimul grup care poate sa aiba mai putin de 5 elemente
+        {
+            mediana[i] = CautaMediana(v+stanga+i*5,numar%5);
+            i++;
+        }
+
+        int mediana_medianelor = (i==1) ? mediana[i-1] : kminim(mediana,0,i-1,i/2);
+
+        int pos = partitionare(v,stanga,dreapta,mediana_medianelor);
+
+        if(pos-stanga == k-1)
+            return v[pos];
+
+        if(pos-stanga>k-1)
+            return kminim(v,stanga,pos-1,k);
+
+        return kminim(v,pos+1,dreapta,k-pos+stanga-1);
+
+    }
+    return INT_MAX;
+}
+
+void swap(int *a,int *b)
+{
+    int aux = *a;
+    *a = *b;
+    *b = aux;
+}
+
+int partitionare(int v[], int stanga, int dreapta, int element)
+{
+    int i;
+    for(i=stanga;i<dreapta;i++)
+        if(v[i]==element)
+            break;
+
+    swap(&v[i],&v[dreapta]);
+
+    i = stanga;
+    for(int j=stanga;j<=dreapta-1;j++)
+    {
+        if(v[i]<=element)
+        {
+            swap(&v[i],&v[j]);
+            i++;
+        }
+    }
+
+    swap(&v[i],&v[dreapta]);
+
+    return i;
+}
+
+/// MergeSort
+
+
+void Interclasare(int *v,int s,int m,int d)
+{
+    int i,j,k;
+    i=s;
+    j=m+1;
+    k=0;
+    while(i<=m && j<=d)
+        if(v[i]<v[j])
+            auxiliar[++k]=v[i++];
+        else
+            auxiliar[++k]=v[j++];
+    while (i<=m)
+        auxiliar[++k]=v[i++];
+    while(j<=d)
+        auxiliar[++k]=v[j++];
+    k=0;
+    for(i=s;i<=d;i++)
+        v[i]=auxiliar[++k];
+}
+
+void MergeSort(int v[],int s,int d)
+{
+    if(s<d)
+    {
+        int m=(s+d)/2;
+        MergeSort(v,s,m);
+        MergeSort(v,m+1,d);
+        Interclasare(v,s,m,d);
+    }
 }
 
 void CountSort(int v[],int n)
 {
-
-    int vect[101];
-    maxim=Maxim(v,n);
-    int frecv[maxim+1]={};
-    for(int i=0;i<=n;i++)
-        frecv[v[i]]++;
-    for(int i=1;i<=max;i++)
-        frecv[i]+=frecv[i-1];
-    for(int i=n;i>=1;i--)
+    int maxi=v[0];
+    for(int i=1;i<n;i++)
     {
-        vect[frecv[v[i]]-1]=v[i];
-        frecv[v[i]]--;
+        if(v[i]>maxi)
+            maxi=v[i];
     }
-    for(int i=1;i<=n;i++)
-        v[i]=vect[i];
-}
-void MergeSort(int v[], int st, int dr)
-{
-    if(st<dr)
-    {
-        int mij=st+(dr-st)/2;
-        MergeSort(v,st,mij);
-        MergeSort(v,mij+1,dr);
-        Merge(v,st,mij,dr);
-    }
-}
 
-void Merge(int v[], int st, int mij, int dr)
-{
-    int i,j,k;
-    int n1=mij-st+1;
-    int n2=dr-mij;
-    int mij=st+dr/2;
-    int st[n1],dr[n2];
-
-    for(i=1;i<=n1;i++)
-        st[i]=v[st+1];
-    for(j=1;j<=n2;j++)
-        dr[j]=v[mij+1+j];
-
-    i=1,j=1,k=st;
-    while(i<=n1 && j<=n2)
+    for(int i=0;i<=maxi;i++)
     {
-        if(st[i]<=dr[j])
-            v[k]=st[i],i++;
-        else
-            v[k]=dr[i],k++;
-        k++;
+        frecventa[i]=0;
     }
-    while(i<=n1)
+
+    for(int i=0;i<n;i++)
     {
-        v[k]=st[i];
-        i++;
-        k++;
+        frecventa[v[i]]++;
     }
-    while(j<=n2)
+
+    for(int i=1;i<=maxi;i++)
     {
-        v[k]=dr[j];
-        j++;
-        k++;
+        frecventa[i]+=frecventa[i-1];
+    }
+
+    for(int i=n-1;i>=0;i--)
+    {
+        auxiliar[frecventa[v[i]]-1]=v[i];
+        frecventa[v[i]]--;
+    }
+    for(int i=0;i<n;i++)
+    {
+        v[i]=auxiliar[i];
     }
 }
 
-void BubbleSort(int v[],int n)
+bool Vector_Sortat(int v[],int n)
 {
-    int i,j;
-    for(i=1;i<n;i++)
-        for(j=1;j<n-i;j++)
-            if(v[j]>v[j+1])
-                swap(&v[j],&v[j+1]);
+    for(int i=0;i<n-1;i++)
+        if(v[i]>v[i+1])
+            return false;
+    return true;
 }
 
-void RadixSort(int v[],int n)
+void Copiere(int v[],int w[],int n)
 {
-    int max=Maxim(v,n);
-
-    for(int k=1;max/k>0;k*=10)
-        CSort(v,n,k);
+    for(int i=0;i<n;i++)
+        v[i]=w[i];
 }
-void QuickSort(int v[],int st, int dr)
-{
-    int i=st,j=dr;
-    int k;
-    int mij=v[(st+dr)/2];
 
-    while(i<=j)
+int RandomNumber(int min, int max)
+{
+    return min + rand() /  (RAND_MAX / (max-min+1) +1) ;
+}
+
+int main()
+{
+    int teste;
+
+    fin>>teste;
+
+    for(int i=1;i<=teste;i++)
     {
-        while(v[i]<mij)
-            i++;
-        while(v[j]>mij)
-            j--;
-        if(i<=j)
+        fin>>nr_numere>>val_max;
+        fout<<nr_numere<<" "<<val_max;
+        for(int j=0;j<nr_numere;j++)
         {
-            k=v[i];
-            v[i]=v[j];
-            v[j]=k;
-            i++;
-            j--;
+            tablou[j]=RandomNumber(0,val_max);
+            copie_tablou[j]=tablou[j];
         }
+        /*
+        /// BubbleSort
+
+        if(nr_numere<=20000)
+        {
+            BubbleSort(tablou,nr_numere);
+            fout<<" BubbleSort :"<<Vector_Sortat(tablou,nr_numere)<<"\n";
+            Copiere(tablou,copie_tablou,nr_numere);
+        }
+        else
+        {
+            fout<<"BubbleSort nu functioneaza bine pe tablouri foarte mari, ineficient."<<"\n";
+        }
+        */
+
+        /*
+
+        /// QuickSort1
+
+        QuickSort1(tablou,0,nr_numere-1);
+        fout<<" QuickSort "<<Vector_Sortat(tablou,nr_numere)<<"\n";
+        Copiere(tablou,copie_tablou,nr_numere);
+
+        */
+
+
+        /*
+        /// QuickSort cu Pivot Randomizat
+
+            QuicksortRand(tablou,0, nr_numere-1);
+            fout<<" QuickSort cu pivot randomizat : " <<Vector_Sortat(tablou,nr_numere)<<"\n";
+            Copiere(tablou,copie_tablou,nr_numere);
+
+        */
+
+
+         /*
+          /// QS mediana medianelor
+        if(val_max>20000)
+        {
+            QuicksortMed(tablou,0,nr_numere-1);
+            fout<<"  Quicksort mediana-medianelor : "<<Vector_Sortat(tablou,nr_numere)<<"\n";
+            Copiere(tablou,copie_tablou,nr_numere);
+        }
+        else
+        {
+            fout<<" Quicksort mediana-medianelor functioneaza ineficient pe numere mici ";
+            fout<<"\n";
+        }
+
+        */
+
+
+        /*
+
+         ///Mergesort
+        MergeSort(tablou,0,nr_numere-1);
+        fout<<"  Mergesort: "<<Vector_Sortat(tablou,nr_numere)<<" \n";
+        Copiere(tablou,copie_tablou,nr_numere);
+        */
+
+        ///CountSort
+
+        if(val_max<=100000)
+        {
+            CountSort(tablou,nr_numere);
+            fout<<"  CountSort : "<<Vector_Sortat(tablou,nr_numere)<<" \n";
+            Copiere(tablou,copie_tablou,nr_numere);
+        }
+        else
+        {
+            fout<<"CountSort functioneaza mult mai bine pe numere mici, asadar am setat limita la 100000\n";
+        }
+
+
+
+
     }
-    if(st<j)
-        QuickSort(v,st,j);
-    if(i<dr)
-        QuickSort(v,i,dr);
-}
 
-int Maxim(int v[],int n)
-{
-    int k=v[1];
-    for(int i=2;i<=n;i++)
-        if(v[i]>k)
-            k=v[i];
-    return k;
-}
 
-void CSort(int v[],int n,int k)
-{
-    int vect[n];
-    int i,frecv[10]={};
 
-    for(i=1;i<=n;i++)
-        frecv[(v[i]/k)%10]++;
-    for(i=1;i<10;i++)
-        frecv[i]+=frecv[i-1];
-    for(i=n;i>=1;i--)
-    {
-        vect[frecv[(v[i]/k)%10]-1]=v[i];
-        frecv[(v[i]/k)%10]--;
-    }
-    for(i=1;i<=n;i++)
-        v[i]=vect[i];
+    return 0;
 }
